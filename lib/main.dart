@@ -19,44 +19,24 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: FutureBuilder<bool>(
-        future: _checkUserLoggedIn(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Scaffold(
-              backgroundColor: Colors.white,
-              body: SizedBox.shrink(),
-            );
-          }
-
-          // If user is logged in, go to home directly
-          if (snapshot.data == true) {
-            return HomePage();
-          }
-
-          // If user is not logged in, show video preloader
-          return VideoPreloaderPage();
-        },
-      ),
+      // Always show splash video first, regardless of login status
+      home: SplashVideoPage(),
     );
   }
-
-  Future<bool> _checkUserLoggedIn() async {
-    return HiveDatabase.isUserLoggedIn();
-  }
 }
 
-// Video Preloader Page
-class VideoPreloaderPage extends StatefulWidget {
-  const VideoPreloaderPage({super.key});
+// Splash Video Page - Shows every time app opens
+class SplashVideoPage extends StatefulWidget {
+  const SplashVideoPage({super.key});
 
   @override
-  State<VideoPreloaderPage> createState() => _VideoPreloaderPageState();
+  State<SplashVideoPage> createState() => _SplashVideoPageState();
 }
 
-class _VideoPreloaderPageState extends State<VideoPreloaderPage> {
+class _SplashVideoPageState extends State<SplashVideoPage> {
   late VideoPlayerController _controller;
   bool _isInitialized = false;
+  bool _hasNavigated = false;
 
   @override
   void initState() {
@@ -77,22 +57,40 @@ class _VideoPreloaderPageState extends State<VideoPreloaderPage> {
       }
     } catch (e) {
       print('Error initializing video: $e');
-      // If video fails, navigate to account page anyway
-      _navigateToAccount();
+      // If video fails, navigate immediately
+      _navigateToNextScreen();
     }
 
+    // Listen for video completion
     _controller.addListener(() {
-      if (_controller.value.position >= _controller.value.duration && mounted) {
-        _navigateToAccount();
+      if (_controller.value.position >= _controller.value.duration &&
+          mounted &&
+          !_hasNavigated) {
+        _hasNavigated = true;
+        _navigateToNextScreen();
       }
     });
   }
 
-  void _navigateToAccount() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const AccountPage()),
-    );
+  Future<void> _navigateToNextScreen() async {
+    if (!mounted) return;
+
+    // Check if user is logged in
+    bool isLoggedIn = HiveDatabase.isUserLoggedIn();
+
+    if (isLoggedIn) {
+      // User is logged in, go to HomePage
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomePage()),
+      );
+    } else {
+      // User is not logged in, go to AccountPage
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const AccountPage()),
+      );
+    }
   }
 
   @override
@@ -116,7 +114,15 @@ class _VideoPreloaderPageState extends State<VideoPreloaderPage> {
           ),
         ),
       )
-          : Container(color: Colors.black),
+          : Container(
+        color: Colors.black,
+        child: Center(
+          child: CircularProgressIndicator(
+            color: Colors.white,
+          ),
+        ),
+      ),
     );
   }
 }
+

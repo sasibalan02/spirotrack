@@ -8,7 +8,7 @@ import 'device.dart';
 import 'exercise.dart';
 import 'hive_database.dart';
 import 'report_detail.dart';
-import 'main.dart'; // Import main.dart to access VideoPreloaderPage
+import 'main.dart'; // Import main.dart to access SplashVideoPage
 import 'permissions_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -162,10 +162,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       await HiveDatabase.logout();
 
       if (mounted) {
-        // Navigate to VideoPreloaderPage
+        // Navigate to SplashVideoPage (which will then go to AccountPage)
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => VideoPreloaderPage()),
+          MaterialPageRoute(builder: (context) => SplashVideoPage()),
               (route) => false,
         );
       }
@@ -266,9 +266,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 }
 
-// Updated HomeBody section for home.dart
-// Replace the existing HomeBody class with this updated version
-
+// HomeBody with fixed overflow issue
 class HomeBody extends StatefulWidget {
   final String name;
   final int age;
@@ -316,7 +314,7 @@ class _HomeBodyState extends State<HomeBody> {
       padding: EdgeInsets.all(5),
       child: Column(
         children: [
-          // User info container
+          // User info container - FIXED OVERFLOW
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
@@ -337,18 +335,31 @@ class _HomeBodyState extends State<HomeBody> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Left side - Name and UID
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.name,
-                      style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
-                    ),
-                    Text("UID: ${widget.uid}", style: TextStyle(fontSize: 20)),
-                  ],
+                // Left side - Name and UID (with Expanded to prevent overflow)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.name,
+                        style: TextStyle(
+                          fontSize: 40,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        "UID: ${widget.uid}",
+                        style: TextStyle(fontSize: 20),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
+                SizedBox(width: 10),
                 // Right side - Age
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.center,

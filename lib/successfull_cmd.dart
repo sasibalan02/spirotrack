@@ -14,7 +14,7 @@ class _SuccessfulCmdPageState extends State<SuccessfulCmdPage> {
   @override
   void initState() {
     super.initState();
-    // Simulate success video duration (3 seconds)
+    // Show success message for 3 seconds
     Future.delayed(Duration(seconds: 3), () async {
       if (mounted) {
         // Check if permissions are already granted
