@@ -185,7 +185,7 @@ class _SaveReportPageState extends State<SaveReportPage> {
         String time = DateFormat('HH:mm:ss').format(now);
         String timestamp = now.millisecondsSinceEpoch.toString();
 
-        // Determine status based on FVC value
+        // Determine status based on FVC value with UPDATED thresholds
         String status = _determineStatus(fvc);
 
         setState(() {
@@ -213,11 +213,14 @@ class _SaveReportPageState extends State<SaveReportPage> {
     }
   }
 
+  // UPDATED status determination logic
   String _determineStatus(double fvc) {
-    if (fvc >= 1800) return 'Excellent';
-    if (fvc >= 1500) return 'Good';
-    if (fvc >= 1000) return 'Better';
-    return 'Poor';
+    if (fvc > 1500) return 'Excellent';
+    if (fvc > 1200 && fvc <= 1500) return 'Good';
+    if (fvc > 900 && fvc <= 1200) return 'Better';
+    if (fvc <= 900) return 'Poor';
+    // For values between 800 and 900
+    return 'Better';
   }
 
   Future<void> _saveReport() async {
@@ -603,7 +606,6 @@ class _SaveReportPageState extends State<SaveReportPage> {
           ],
         ),
       ),
-      // ✅ REMOVED bottomNavigationBar
     );
   }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'report.dart';
 import 'profile.dart';
@@ -21,6 +22,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   int currentIndex = 0;
   late Map<String, dynamic> profileData;
   bool _checkingPermissions = false;
+  DateTime? _lastBackPressTime;
 
   @override
   void initState() {
@@ -78,6 +80,37 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         );
       }
     }
+  }
+
+  // Handle back button press
+  Future<bool> _onWillPop() async {
+    // If we're not on the home tab (index 0), go back to home tab
+    if (currentIndex != 0) {
+      setState(() {
+        currentIndex = 0;
+      });
+      return false; // Don't exit the app
+    }
+
+    // If we're on home tab, show exit confirmation with double-tap
+    final now = DateTime.now();
+    if (_lastBackPressTime == null ||
+        now.difference(_lastBackPressTime!) > Duration(seconds: 2)) {
+      _lastBackPressTime = now;
+
+      // Show snackbar message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Press back again to exit'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Colors.grey[800],
+        ),
+      );
+      return false; // Don't exit yet
+    }
+
+    // If pressed back twice within 2 seconds, exit the app
+    return true;
   }
 
   Widget _getCurrentBody() {
@@ -196,7 +229,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-      onWillPop: () async => false, // Disable back button
+      onWillPop: _onWillPop, // Handle back button press
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: const Color.fromARGB(255, 70, 151, 218),

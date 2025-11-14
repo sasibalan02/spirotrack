@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import 'hive_database.dart';
 
 class ExerciseBody extends StatelessWidget {
   const ExerciseBody({super.key});
@@ -9,7 +10,7 @@ class ExerciseBody extends StatelessWidget {
     return ListView(
       padding: EdgeInsets.all(10),
       children: [
-        // First Container - Suggested Exercise
+        // First Container - Suggested Exercise (based on FVC)
         _buildSuggestedExercise(context),
         SizedBox(height: 15),
 
@@ -23,8 +24,34 @@ class ExerciseBody extends StatelessWidget {
     );
   }
 
-  // First Container - Suggested Exercise
+  // First Container - Suggested Exercise (selects video based on last FVC reading)
   Widget _buildSuggestedExercise(BuildContext context) {
+    // Get last report to determine FVC value
+    Map<String, dynamic>? lastReport = HiveDatabase.getLastReport();
+
+    String videoPath;
+    String exerciseLevel;
+
+    if (lastReport != null) {
+      double fvc = (lastReport['FVC'] ?? 0).toDouble();
+
+      // Select video based on FVC value
+      if (fvc > 1500) {
+        videoPath = 'assets/videos/hard.mp4';
+        exerciseLevel = 'Hard';
+      } else if (fvc > 1200 && fvc <= 1500) {
+        videoPath = 'assets/videos/medium.mp4';
+        exerciseLevel = 'Medium';
+      } else {
+        videoPath = 'assets/videos/easy.mp4';
+        exerciseLevel = 'Easy';
+      }
+    } else {
+      // Default to medium difficulty if no test taken yet
+      videoPath = 'assets/videos/medium.mp4';
+      exerciseLevel = 'Recommended';
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -43,13 +70,34 @@ class ExerciseBody extends StatelessWidget {
         children: [
           Padding(
             padding: EdgeInsets.all(15),
-            child: Text(
-              "Suggested Exercise",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[700],
-              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Suggested Exercise",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[700],
+                  ),
+                ),
+                if (lastReport != null)
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: _getLevelColor(exerciseLevel).withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Text(
+                      '$exerciseLevel Level',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: _getLevelColor(exerciseLevel),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
           InkWell(
@@ -58,8 +106,8 @@ class ExerciseBody extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) => VideoPlayerPage(
-                    title: "Suggested Exercise",
-                    videoUrl: "assets/videos/suggested_exercise.mp4",
+                    title: "Suggested Exercise ($exerciseLevel)",
+                    videoUrl: videoPath,
                   ),
                 ),
               );
@@ -86,9 +134,35 @@ class ExerciseBody extends StatelessWidget {
               ),
             ),
           ),
+          if (lastReport == null)
+            Padding(
+              padding: EdgeInsets.fromLTRB(15, 0, 15, 15),
+              child: Text(
+                'Default recommendation - Take a test for personalized exercises',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontStyle: FontStyle.italic,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  Color _getLevelColor(String level) {
+    switch (level.toLowerCase()) {
+      case 'easy':
+        return Colors.green;
+      case 'medium':
+        return Colors.orange;
+      case 'hard':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 
   // Second Container - Breathing Exercise
