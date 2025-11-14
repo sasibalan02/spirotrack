@@ -56,3 +56,5 @@ flutter:
     - assets/images/games.jpg
     - assets/videos/popupvideo.mp4
     - assets/videos/easy.mp4
+    - assets/videos/medium.mp4
+    - assets/videos/hard.mp4
