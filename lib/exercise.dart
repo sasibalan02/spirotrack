@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
 
 class ExerciseBody extends StatelessWidget {
   const ExerciseBody({super.key});
@@ -11,11 +12,11 @@ class ExerciseBody extends StatelessWidget {
         // First Container - Suggested Exercise
         _buildSuggestedExercise(context),
         SizedBox(height: 15),
-        
+
         // Second Container - Breathing Exercise
         _buildBreathingExercise(context),
         SizedBox(height: 15),
-        
+
         // Third Container - Games
         _buildGames(context),
       ],
@@ -58,7 +59,7 @@ class ExerciseBody extends StatelessWidget {
                 MaterialPageRoute(
                   builder: (context) => VideoPlayerPage(
                     title: "Suggested Exercise",
-                    videoUrl: "suggested_exercise_video.mp4",
+                    videoUrl: "assets/videos/suggested_exercise.mp4",
                   ),
                 ),
               );
@@ -71,7 +72,7 @@ class ExerciseBody extends StatelessWidget {
                 color: Colors.grey[300],
                 borderRadius: BorderRadius.circular(10),
                 image: DecorationImage(
-                  image: AssetImage('assets/suggested_exercise.jpg'),
+                  image: AssetImage('assets/images/suggest.jpg'),
                   fit: BoxFit.cover,
                   onError: (exception, stackTrace) {},
                 ),
@@ -118,17 +119,17 @@ class ExerciseBody extends StatelessWidget {
             ),
           ),
           SizedBox(height: 15),
-          
+
           // Easy Level
-          _buildExerciseRow(context, "Easy", "easy_breathing.jpg", "easy_video.mp4", Colors.green),
+          _buildExerciseRow(context, "Easy", "assets/images/easy.jpg", "assets/videos/easy.mp4", Colors.green),
           SizedBox(height: 10),
-          
+
           // Medium Level
-          _buildExerciseRow(context, "Medium", "medium_breathing.jpg", "medium_video.mp4", Colors.orange),
+          _buildExerciseRow(context, "Medium", "assets/images/medium.jpg", "assets/videos/medium.mp4", Colors.orange),
           SizedBox(height: 10),
-          
+
           // Hard Level
-          _buildExerciseRow(context, "Hard", "hard_breathing.jpg", "hard_video.mp4", Colors.red),
+          _buildExerciseRow(context, "Hard", "assets/images/hard.jpg", "assets/videos/hard.mp4", Colors.red),
         ],
       ),
     );
@@ -167,7 +168,7 @@ class ExerciseBody extends StatelessWidget {
                   bottomLeft: Radius.circular(8),
                 ),
                 image: DecorationImage(
-                  image: AssetImage('assets/$imagePath'),
+                  image: AssetImage(imagePath),
                   fit: BoxFit.cover,
                   onError: (exception, stackTrace) {},
                 ),
@@ -246,7 +247,7 @@ class ExerciseBody extends StatelessWidget {
                 color: Colors.grey[300],
                 borderRadius: BorderRadius.circular(10),
                 image: DecorationImage(
-                  image: AssetImage('assets/games.jpg'),
+                  image: AssetImage('assets/images/games.jpg'),
                   fit: BoxFit.cover,
                   onError: (exception, stackTrace) {},
                 ),
@@ -266,8 +267,8 @@ class ExerciseBody extends StatelessWidget {
   }
 }
 
-// Video Player Page
-class VideoPlayerPage extends StatelessWidget {
+// Video Player Page with actual video playback
+class VideoPlayerPage extends StatefulWidget {
   final String title;
   final String videoUrl;
 
@@ -278,12 +279,72 @@ class VideoPlayerPage extends StatelessWidget {
   });
 
   @override
+  State<VideoPlayerPage> createState() => _VideoPlayerPageState();
+}
+
+class _VideoPlayerPageState extends State<VideoPlayerPage> {
+  late VideoPlayerController _controller;
+  bool _isInitialized = false;
+  bool _hasError = false;
+  bool _showPlayButton = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeVideo();
+  }
+
+  Future<void> _initializeVideo() async {
+    try {
+      _controller = VideoPlayerController.asset(widget.videoUrl);
+      await _controller.initialize();
+
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+        });
+      }
+
+      // Add listener to handle video end
+      _controller.addListener(() {
+        if (_controller.value.position >= _controller.value.duration) {
+          _controller.seekTo(Duration.zero);
+          _controller.pause();
+          setState(() {
+            _showPlayButton = true;
+          });
+        }
+      });
+    } catch (e) {
+      print('Error initializing video: $e');
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _playVideo() {
+    setState(() {
+      _showPlayButton = false;
+    });
+    _controller.play();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 70, 151, 218),
         title: Text(
-          title,
+          widget.title,
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         leading: IconButton(
@@ -292,45 +353,96 @@ class VideoPlayerPage extends StatelessWidget {
         ),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              height: 300,
-              width: double.infinity,
-              margin: EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.black,
+        child: Container(
+          height: 300,
+          width: double.infinity,
+          margin: EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: _hasError
+              ? Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 60,
+                  color: Colors.white70,
+                ),
+                SizedBox(height: 15),
+                Text(
+                  "Video not found",
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          )
+              : !_isInitialized
+              ? Center(
+            child: CircularProgressIndicator(
+              color: Colors.white,
+            ),
+          )
+              : Stack(
+            children: [
+              // Video Player
+              ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-              ),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.play_circle_filled,
-                      size: 80,
-                      color: Colors.white,
+                child: SizedBox.expand(
+                  child: FittedBox(
+                    fit: BoxFit.cover,
+                    child: SizedBox(
+                      width: _controller.value.size.width,
+                      height: _controller.value.size.height,
+                      child: VideoPlayer(_controller),
                     ),
-                    SizedBox(height: 20),
-                    Text(
-                      "Video Player",
-                      style: TextStyle(color: Colors.white, fontSize: 18),
-                    ),
-                    SizedBox(height: 10),
-                    Text(
-                      videoUrl,
-                      style: TextStyle(color: Colors.grey, fontSize: 14),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-            Text(
-              "Video content will be displayed here",
-              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-            ),
-          ],
+
+              // Play Button Overlay (only shows when not playing)
+              if (_showPlayButton)
+                Center(
+                  child: GestureDetector(
+                    onTap: _playVideo,
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.5),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.play_arrow,
+                        size: 50,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+
+              // Progress Bar at bottom
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: VideoProgressIndicator(
+                  _controller,
+                  allowScrubbing: true,
+                  colors: VideoProgressColors(
+                    playedColor: const Color.fromARGB(255, 70, 151, 218),
+                    bufferedColor: Colors.white30,
+                    backgroundColor: Colors.white10,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -344,12 +456,12 @@ class GamesGridPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     List<Map<String, String>> games = [
-      {"name": "Game 1", "image": "game1.jpg", "video": "game1_video.mp4"},
-      {"name": "Game 2", "image": "game2.jpg", "video": "game2_video.mp4"},
-      {"name": "Game 3", "image": "game3.jpg", "video": "game3_video.mp4"},
-      {"name": "Game 4", "image": "game4.jpg", "video": "game4_video.mp4"},
-      {"name": "Game 5", "image": "game5.jpg", "video": "game5_video.mp4"},
-      {"name": "Game 6", "image": "game6.jpg", "video": "game6_video.mp4"},
+      {"name": "Game 1", "image": "game1.jpg", "video": "assets/videos/game1.mp4"},
+      {"name": "Game 2", "image": "game2.jpg", "video": "assets/videos/game2.mp4"},
+      {"name": "Game 3", "image": "game3.jpg", "video": "assets/videos/game3.mp4"},
+      {"name": "Game 4", "image": "game4.jpg", "video": "assets/videos/game4.mp4"},
+      {"name": "Game 5", "image": "game5.jpg", "video": "assets/videos/game5.mp4"},
+      {"name": "Game 6", "image": "game6.jpg", "video": "assets/videos/game6.mp4"},
     ];
 
     return Scaffold(
@@ -400,7 +512,7 @@ class GamesGridPage extends StatelessWidget {
                     ),
                   ],
                   image: DecorationImage(
-                    image: AssetImage('assets/${games[index]["image"]}'),
+                    image: AssetImage('assets/images/${games[index]["image"]}'),
                     fit: BoxFit.cover,
                     onError: (exception, stackTrace) {},
                   ),
